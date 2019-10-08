@@ -1,18 +1,11 @@
-from ipdb import set_trace
+import random
 
-from random import seed
-from random import randint
-from random import uniform
-from random import shuffle
-from random import random
-
-seed(a=None)
-
+random.seed(a=None)
 NUM_POP = 50 # P
 NUM_GENE = 50  # N
 NUM_EPOCH = 50
 CROSSOVER_PROB = 0.75
-MUTATION_PROB = uniform(1.0/NUM_POP, 1.0/NUM_GENE)
+MUTATION_PROB = random.uniform(1.0/NUM_POP, 1.0/NUM_GENE)
 
 
 class Individual():
@@ -26,7 +19,7 @@ def main():
     for _ in range(NUM_POP):
         gene = []
         for _ in range(NUM_GENE):
-            gene.append(randint(0,1))  
+            gene.append(random.randint(0,1))
         popPool.append(Individual(gene))
 
     # Selection
@@ -39,6 +32,13 @@ def main():
         inspectPop(popPool)
 
 def inspectPop(p):
+    def assessFitness(individual):
+        fitness = 0
+        for gene in individual.gene:
+            if gene == 1:
+                fitness = fitness + 1
+        individual.fitness = fitness
+
     # Generate current population fitness
     for ind in p:
         assessFitness(ind)
@@ -54,13 +54,6 @@ def inspectPop(p):
     print "Fittest Candidate: {f}".format(f=fittist)
     print "Mean Fitness: {mf}".format(mf=meanFitness)
 
-def assessFitness(individual):
-    fitness = 0
-    for gene in individual.gene:
-        if gene == 1:
-            fitness = fitness + 1
-    individual.fitness = fitness
-
 def selection(population):
     def getPoolFitness(p):
         fitness = 0
@@ -69,8 +62,8 @@ def selection(population):
         return fitness
 
     def crossover(cand_a, cand_b):
-        if random() <= CROSSOVER_PROB:
-            cross_point = randint(1, NUM_GENE - 1)
+        if random.random() <= CROSSOVER_PROB:
+            cross_point = random.randint(1, NUM_GENE - 1)
             child_a = Individual(
                 cand_a.gene[:cross_point] + cand_b.gene[cross_point:])
             child_b = Individual(
@@ -83,15 +76,15 @@ def selection(population):
         for child in offspring:
             for bit in child.gene:
                 # Flip bit
-                if random() <= MUTATION_PROB:
+                if random.random() <= MUTATION_PROB:
                     bit = 1 - bit
         return offspring
                 
-    shuffle_pop = lambda p : shuffle(p)
+    shuffle_pop = lambda p : random.shuffle(p)
     offspring = [] 
     for _ in range(NUM_POP):
-        parentOne = population[randint(0, NUM_POP - 1)]
-        parentTwo = population[randint(0, NUM_POP - 1)]
+        parentOne = population[random.randint(0, NUM_POP - 1)]
+        parentTwo = population[random.randint(0, NUM_POP - 1)]
         if parentOne.fitness >= parentTwo.fitness:
             offspring.append(parentOne)
         else:
@@ -112,7 +105,7 @@ def selection(population):
 
     new_pop = []
     # Crossover
-    for i in range(0, child_candidate.__len__(), 2):
+    for i in range(0, len(child_candidate), 2):
         temp_children = crossover(child_candidate[i], child_candidate[i+1])
         new_pop.append(temp_children[1])
         new_pop.append(temp_children[2])

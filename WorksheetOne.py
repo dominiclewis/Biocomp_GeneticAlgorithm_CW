@@ -1,3 +1,7 @@
+'''
+Author: Dominic Lewis
+'''
+
 import random
 
 random.seed(a=None)

@@ -16,7 +16,6 @@ class Individual:
     def __init__(self, gene):
         self.gene = gene
         self.fitness = 0
-
 def main():
     # Create Population
     popPool = []
@@ -83,13 +82,17 @@ def selection(population):
         else:
             return (False, cand_a, cand_b)
     
-    def mutate_offspring(offspring):
-        for child in offspring:
-            for bit in child.gene:
-                # Flip bit
-                if random.random() <= MUTATION_PROB:
-                    bit = 1 - bit
-        return offspring
+    def mutate_offspring(child):
+        new_gene = []
+        for bit in child.gene:
+            if random.random() <= MUTATION_PROB:
+                # Mutate bit
+                new_gene.append(1 - bit)
+            else:
+                new_gene.append(bit)
+        child.gene = new_gene
+        return child
+
     shuffle_pop = lambda p : random.shuffle(p)
     offspring = [] 
     for _ in range(NUM_POP):
@@ -117,9 +120,9 @@ def selection(population):
     # Crossover
     for i in range(0, len(child_candidate), 2):
         temp_children = crossover(child_candidate[i], child_candidate[i+1])
-        new_pop.append(temp_children[1])
-        new_pop.append(temp_children[2])
-    return mutate_offspring(new_pop)
+        new_pop.append(mutate_offspring(temp_children[1]))
+        new_pop.append(mutate_offspring(temp_children[2]))
+    return new_pop
 
 
 if __name__ == "__main__":

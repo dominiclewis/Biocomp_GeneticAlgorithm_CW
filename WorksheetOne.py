@@ -10,9 +10,9 @@ NUM_GENE = 50  # N
 NUM_EPOCH = 50
 CROSSOVER_PROB = 0.75
 MUTATION_PROB = random.uniform(1.0/NUM_POP, 1.0/NUM_GENE)
-
-
-class Individual():
+mean_fit = []
+best_fit = []
+class Individual:
     def __init__(self, gene):
         self.gene = gene
         self.fitness = 0
@@ -25,38 +25,45 @@ def main():
         for _ in range(NUM_GENE):
             gene.append(random.randint(0,1))
         popPool.append(Individual(gene))
+    inspectPop(popPool, new=False)
 
     # Selection
-    for i in range(NUM_EPOCH):
-        print "Epoch: {e}".format(e=i+1)
-        print "Prev Pop:"
-        inspectPop(popPool)
+    for epoch_count in range(NUM_EPOCH):
         popPool = selection(popPool)
-        print "New Pop:"
-        inspectPop(popPool)
+        inspectPop(popPool, new=True)
+    write_csv()
 
-def inspectPop(p):
+def write_csv():
+    with open("fit.csv", 'w') as f:
+        f.write("Epoch,Best Candidate,Mean Fitness,\n")
+        for i in range(NUM_EPOCH):
+            f.write("{e},{bc},{mf},\n".format(
+                e=i+1, bc=best_fit[i], mf=mean_fit[i]))
+
+def inspectPop(p, new=False):
     def assessFitness(individual):
         fitness = 0
         for gene in individual.gene:
             if gene == 1:
                 fitness = fitness + 1
         individual.fitness = fitness
-
+    meanFitness = 0.0
+    fittist = -1
     # Generate current population fitness
     for ind in p:
         assessFitness(ind)
-
-    meanFitness = 0.0
-    fittist = -1
     for ind in p:
         # print "Genes:\n{g}\nFitness:\n{f}".format(g=ind.gene, f=ind.fitness)
         if ind.fitness > fittist:
             fittist = ind.fitness
         meanFitness = meanFitness + ind.fitness
     meanFitness = meanFitness / NUM_POP
+
     print "Fittest Candidate: {f}".format(f=fittist)
     print "Mean Fitness: {mf}".format(mf=meanFitness)
+    if new:
+        mean_fit.append(meanFitness)
+        best_fit.append(fittist)
 
 def selection(population):
     def getPoolFitness(p):
@@ -83,7 +90,6 @@ def selection(population):
                 if random.random() <= MUTATION_PROB:
                     bit = 1 - bit
         return offspring
-                
     shuffle_pop = lambda p : random.shuffle(p)
     offspring = [] 
     for _ in range(NUM_POP):

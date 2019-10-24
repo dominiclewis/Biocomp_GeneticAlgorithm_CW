@@ -3,8 +3,10 @@ Author: Dominic Lewis
 '''
 
 import random
-import copy
 import matplotlib.pyplot as plt
+
+from copy import copy
+
 
 random.seed(a=None)
 NUM_POP = 50 # P
@@ -117,7 +119,7 @@ def selection(population):
     offspring = []
     new_pop = []
     # Add the fittest candidate to the offspring
-    fittest = copy.copy(sorted(population, key=lambda x: x.fitness, reverse=True)[0])
+    fittest = copy(sorted(population, key=lambda x: x.fitness, reverse=True)[0])
 
     for _ in range(NUM_POP):
         parentOne = population[random.randint(0, NUM_POP - 1)]

@@ -3,6 +3,8 @@ Author: Dominic Lewis
 '''
 
 import random
+import copy
+import matplotlib.pyplot as plt
 
 random.seed(a=None)
 NUM_POP = 50 # P
@@ -12,10 +14,13 @@ CROSSOVER_PROB = 0.75
 MUTATION_PROB = random.uniform(1.0/NUM_POP, 1.0/NUM_GENE)
 mean_fit = []
 best_fit = []
+
+
 class Individual:
     def __init__(self, gene):
         self.gene = gene
         self.fitness = 0
+
 def main():
     # Create Population
     popPool = []
@@ -24,33 +29,46 @@ def main():
         for _ in range(NUM_GENE):
             gene.append(random.randint(0,1))
         popPool.append(Individual(gene))
-    inspectPop(popPool, new=False)
 
     # Selection
-    for epoch_count in range(NUM_EPOCH):
+    for i in range(NUM_EPOCH):
+        init = False
+        if i == 0:
+            init = True
+        inspectPop(popPool, init=init)
         popPool = selection(popPool)
-        inspectPop(popPool, new=True)
+    inspectPop(popPool)
     write_csv()
+    plot()
+
+def plot():
+    x = range(NUM_EPOCH + 1)
+    plt.plot(x, best_fit, color='r', label='max')
+    plt.plot(x, mean_fit, color='b', label='mean')
+    plt.legend(loc="upper left")
+    plt.show()
+
 
 def write_csv():
     with open("fit.csv", 'w') as f:
         f.write("Epoch,Best Candidate,Mean Fitness,\n")
-        for i in range(NUM_EPOCH):
+        for i in range(NUM_EPOCH + 1):
             f.write("{e},{bc},{mf},\n".format(
-                e=i+1, bc=best_fit[i], mf=mean_fit[i]))
+                e=i, bc=best_fit[i], mf=mean_fit[i]))
 
-def inspectPop(p, new=False):
-    def assessFitness(individual):
-        fitness = 0
-        for gene in individual.gene:
-            if gene == 1:
-                fitness = fitness + 1
-        individual.fitness = fitness
+def assessFitness(individual):
+    individual.fitness = 0
+    for gene in individual.gene:
+        if gene == 1:
+            individual.fitness = individual.fitness + 1
+
+def inspectPop(p, init=False):
     meanFitness = 0.0
     fittist = -1
-    # Generate current population fitness
-    for ind in p:
-        assessFitness(ind)
+    if init:
+        # Generate current population fitness
+        for ind in p:
+            assessFitness(ind)
     for ind in p:
         # print "Genes:\n{g}\nFitness:\n{f}".format(g=ind.gene, f=ind.fitness)
         if ind.fitness > fittist:
@@ -60,17 +78,10 @@ def inspectPop(p, new=False):
 
     print "Fittest Candidate: {f}".format(f=fittist)
     print "Mean Fitness: {mf}".format(mf=meanFitness)
-    if new:
-        mean_fit.append(meanFitness)
-        best_fit.append(fittist)
+    mean_fit.append(meanFitness)
+    best_fit.append(fittist)
 
 def selection(population):
-    def getPoolFitness(p):
-        fitness = 0
-        for ind in p:
-            fitness = fitness + ind.fitness
-        return fitness
-
     def crossover(cand_a, cand_b):
         if random.random() <= CROSSOVER_PROB:
             cross_point = random.randint(1, NUM_GENE - 1)
@@ -93,35 +104,39 @@ def selection(population):
         child.gene = new_gene
         return child
 
+    def swap_lowest(pop, prev_fittest):
+        # Mutate original list
+        pop = sorted(pop, key=lambda x: x.fitness, reverse=True)
+        if prev_fittest.fitness > pop[-1].fitness:
+            # Remove tail
+            pop.pop()
+            pop.append(prev_fittest)
+        return pop
+
     shuffle_pop = lambda p : random.shuffle(p)
-    offspring = [] 
+    offspring = []
+    new_pop = []
+    # Add the fittest candidate to the offspring
+    fittest = copy.copy(sorted(population, key=lambda x: x.fitness, reverse=True)[0])
+
     for _ in range(NUM_POP):
         parentOne = population[random.randint(0, NUM_POP - 1)]
         parentTwo = population[random.randint(0, NUM_POP - 1)]
-        if parentOne.fitness >= parentTwo.fitness:
+        if parentOne.fitness > parentTwo.fitness:
             offspring.append(parentOne)
         else:
             offspring.append(parentTwo)
 
     shuffle_pop(offspring)
-    child_candidate = offspring
-
-    # Check if offspring improves fitness
-    if getPoolFitness(population) > getPoolFitness(offspring):
-        print "Offspring Fitness:{of}\nLess than\nParent Fitness:{pf}".format(
-            of=str(getPoolFitness(offspring)),
-            pf=str(getPoolFitness(population))
-        )
-        print "Swapping"
-        shuffle_pop(population)
-        child_candidate = population
-
-    new_pop = []
     # Crossover
-    for i in range(0, len(child_candidate), 2):
-        temp_children = crossover(child_candidate[i], child_candidate[i+1])
+    for i in range(0, len(offspring), 2):
+        temp_children = crossover(offspring[i], offspring[i+1])
         new_pop.append(mutate_offspring(temp_children[1]))
         new_pop.append(mutate_offspring(temp_children[2]))
+
+    for ele in new_pop:
+        assessFitness(ele)
+    new_pop = swap_lowest(new_pop, fittest)
     return new_pop
 
 

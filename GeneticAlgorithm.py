@@ -4,7 +4,6 @@ Author: Dominic Lewis
 
 import const
 import DataExtract
-
 import random
 # Matplotlib virtualenv hack
 import matplotlib
@@ -28,14 +27,26 @@ class Individual:
         self.fitness = 0
         self.ruleList = []
 
-
 def main():
     # Create Population
     popPool = []
+    max_num = 2
+    first = False
     for _ in range(const.NUM_POP):
+        count = 1
         gene = []
         for _ in range(const.NUM_GENE):
-            gene.append(random.randint(0,1))
+            if first:
+                first = False
+            if count == 7:
+                max_num = 1
+                count = 1
+                first = True
+            gene.append(random.randint(0, max_num))
+            if count == 1:
+                max_num = 2
+            if not first:
+                count += 1
         popPool.append(Individual(gene))
 
     # Selection
@@ -65,6 +76,16 @@ def write_csv():
                 e=i, bc=best_fit[i], mf=mean_fit[i]))
 
 def assessFitness(individual):
+    def check_condition(rule, datapoint):
+        match = True
+        for i, dp in enumerate(datapoint):
+            if rule[i] == dp or rule[i] == 2:
+                pass
+            else:
+                match = False
+                break
+        return match
+
     # Create Rules
     k = 0
     fitness = 0
@@ -77,12 +98,13 @@ def assessFitness(individual):
         tempRule.classification = individual.gene[k]
         k = k + 1
         individual.ruleList.append(tempRule)
-
     # Assess the fitness
     for dp in DataExtract.DataHelper.data_list:
         for rule in individual.ruleList:
-            if rule.condition == dp.condition and rule.classification == dp.classification:
-                fitness = fitness + 1
+            if check_condition(rule.condition, dp.condition):
+                if rule.classification == dp.classification:
+                    fitness = fitness + 1
+                break
     individual.fitness = fitness
 
 
@@ -108,24 +130,52 @@ def inspectPop(p, init=False):
 
 def selection(population):
     def crossover(cand_a, cand_b):
+        child_a = None
+        child_b = None
         if random.random() <= const.CROSSOVER_PROB:
-            cross_point = random.randint(1, const.NUM_GENE - 1)
-            child_a = Individual(
-                cand_a.gene[:cross_point] + cand_b.gene[cross_point:])
-            child_b = Individual(
-                cand_b.gene[:cross_point] + cand_a.gene[cross_point:])
+            while True:
+                cross_point = random.randint(1, const.NUM_GENE - 1)
+                child_a = Individual(
+                    cand_a.gene[:cross_point] + cand_b.gene[cross_point:])
+                child_b = Individual(
+                    cand_b.gene[:cross_point] + cand_a.gene[cross_point:])
+                if vali_wc(child_a.gene) and vali_wc(child_b.gene):
+                    break
             return (True, child_a, child_b)
         else:
             return (False, cand_a, cand_b)
-    
+
+    def vali_wc(ele):
+        for e in ele:
+            if e != 2:
+                return True
+        return False
+
     def mutate_offspring(child):
-        new_gene = []
-        for bit in child.gene:
-            if random.random() <= MUTATION_PROB:
+        first = False
+        while True:
+            new_gene = []
+            count = 1
+            b_range = 2
+            for bit in child.gene:
+                if first:
+                    first = False
+                if count == 7:
+                    # Only allow action bit to be 1 and 0
+                    count = 1
+                    b_range = 1
+                    first = True
                 # Mutate bit
-                new_gene.append(1 - bit)
-            else:
-                new_gene.append(bit)
+                if random.random() <= MUTATION_PROB:
+                    new_gene.append(random.randint(0, b_range))
+                else:
+                    new_gene.append(bit)
+                if count == 1:
+                    b_range = 2
+                if not first:
+                    count = count + 1
+            if vali_wc(new_gene):
+                break
         child.gene = new_gene
         return child
 

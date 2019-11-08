@@ -20,7 +20,6 @@ MUTATION_PROB = random.uniform(1.0/const.NUM_POP, 1.0/const.NUM_GENE)
 mean_fit = []
 best_fit = []
 
-
 class Individual:
     def __init__(self, gene):
         self.gene = gene
@@ -57,6 +56,12 @@ def main():
         inspectPop(popPool, init=init)
         popPool = selection(popPool)
     inspectPop(popPool)
+    print "Fittest Candidate"
+    for e in fittest_individual.ruleList:
+        print e.condition, e.classification
+    print "Fittest: {f}".format(
+        f=fittest_individual.fitness)
+
     write_csv()
     plot()
 
@@ -110,6 +115,7 @@ def assessFitness(individual):
 
 
 def inspectPop(p, init=False):
+    global fittest_individual
     meanFitness = 0.0
     fittist = -1
     if init:
@@ -119,6 +125,7 @@ def inspectPop(p, init=False):
     for ind in p:
         # print "Genes:\n{g}\nFitness:\n{f}".format(g=ind.gene, f=ind.fitness)
         if ind.fitness > fittist:
+            fittest_individual = ind
             fittist = ind.fitness
         meanFitness = meanFitness + ind.fitness
     meanFitness = meanFitness / const.NUM_POP
@@ -146,9 +153,14 @@ def selection(population):
             return (False, cand_a, cand_b)
 
     def vali_wc(ele):
-        for e in ele:
-            if e != 2:
+        count = 1
+        for bit in ele:
+            if count == 7:
+                count = 1
+                continue
+            if bit != 2:
                 return True
+            count += 1
         return False
 
     def mutate_offspring(child):

@@ -5,6 +5,7 @@ Author: Dominic Lewis
 import const
 import DataExtract
 import random
+
 # Matplotlib virtualenv hack
 import matplotlib
 matplotlib.use('TkAgg')
@@ -12,10 +13,9 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 from copy import deepcopy
+from bisect import bisect
 
 random.seed(a=None)
-
-MUTATION_PROB = random.uniform(1.0/const.NUM_POP, 1.0/const.NUM_GENE)
 
 mean_fit = []
 best_fit = []
@@ -113,7 +113,6 @@ def assessFitness(individual):
     individual.fitness = fitness
 
 
-
 def inspectPop(p, init=False):
     global fittest_individual
     meanFitness = 0.0
@@ -178,7 +177,7 @@ def selection(population):
                     b_range = 1
                     first = True
                 # Mutate bit
-                if random.random() <= MUTATION_PROB:
+                if random.random() <= const.MUTATION_PROB:
                     new_gene.append(random.randint(0, b_range))
                 else:
                     new_gene.append(bit)
@@ -204,16 +203,24 @@ def selection(population):
     offspring = []
     new_pop = []
     # Add the fittest candidate to the offspring
-    fittest = deepcopy(sorted(population, key=lambda x: x.fitness, reverse=True)[0])
+    population.sort(key=lambda x: x.fitness, reverse=False)
+    # print [e.fitness for e in population]
+    fittest = deepcopy(population[-1])
+    z = 0
+    rank_select = []
+    max_rel_fit = 0
+    rank_indexes = []
 
-    for _ in range(const.NUM_POP):
-        parentOne = population[random.randint(0, const.NUM_POP - 1)]
-        parentTwo = population[random.randint(0, const.NUM_POP - 1)]
-        if parentOne.fitness > parentTwo.fitness:
-            offspring.append(parentOne)
-        else:
-            offspring.append(parentTwo)
+    for i in range(len(population)):
+        z+= 1
+        max_rel_fit += z
+        rank_select.append(max_rel_fit)
 
+    for i in range(len(population)):
+        rank_indexes.append(bisect(rank_select, random.random() * max_rel_fit))
+    [(offspring.append(population[index])) for index in rank_indexes]
+    offspring.sort(key=lambda x: x.fitness, reverse=True)
+    # print[e.fitness for e in offspring]
     shuffle_pop(offspring)
     # Crossover
     for i in range(0, len(offspring), 2):
@@ -229,5 +236,5 @@ def selection(population):
 if __name__ == "__main__":
     DataExtract.DataHelper.load_file_data(
         "/Users/dominiclewis/Repos/BioComp/Biocomp_GeneticAlgorithm_CW/train/"
-        "data1.txt")
+        "data2.txt")
     main()

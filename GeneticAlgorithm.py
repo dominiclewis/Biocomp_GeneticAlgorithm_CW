@@ -47,14 +47,19 @@ def main():
             if not first:
                 count += 1
         popPool.append(Individual(gene))
-
+    global counter
+    counter = 0
     # Selection
     for i in range(const.NUM_EPOCH):
+        counter += 1
         init = False
         if i == 0:
             init = True
         inspectPop(popPool, init=init)
         popPool = selection(popPool)
+        if fittest_individual.fitness >= (const.MAX_FIT - 1):
+            break
+
     inspectPop(popPool)
     print "Fittest Candidate"
     for e in fittest_individual.ruleList:
@@ -66,7 +71,7 @@ def main():
     plot()
 
 def plot():
-    x = range(const.NUM_EPOCH + 1)
+    x = range(counter + 1)
     plt.plot(x, best_fit, color='r', label='max')
     plt.plot(x, mean_fit, color='b', label='mean')
     plt.legend(loc="upper left")
@@ -76,9 +81,18 @@ def plot():
 def write_csv():
     with open("fit.csv", 'w') as f:
         f.write("Epoch,Best Candidate,Mean Fitness,\n")
-        for i in range(const.NUM_EPOCH + 1):
+        for i in range(counter + 1):
             f.write("{e},{bc},{mf},\n".format(
                 e=i, bc=best_fit[i], mf=mean_fit[i]))
+    with open("fittest_cand.csv", 'w') as f:
+        f.write("Fitness,\n")
+        f.write(str(fittest_individual.fitness))
+        f.write("\n\n")
+        f.write("Condition, Action,\n")
+        for e in fittest_individual.ruleList:
+            f.write("{cond}, {clas}\n".format(
+                cond=e.condition,
+                clas=e.classification))
 
 def assessFitness(individual):
     def check_condition(rule, datapoint):

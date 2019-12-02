@@ -52,12 +52,13 @@ def main():
     # Selection
     for i in range(const.NUM_EPOCH):
         counter += 1
+        print("Epoch {c}".format(c=str(counter)))
         init = False
         if i == 0:
             init = True
         inspectPop(popPool, init=init)
         popPool = selection(popPool)
-        if fittest_individual.fitness >= (const.MAX_FIT - 1):
+        if fittest_individual.fitness >= (const.MAX_FIT):
             break
 
     inspectPop(popPool)
@@ -93,6 +94,7 @@ def write_csv():
             f.write("{cond}, {clas}\n".format(
                 cond=e.condition,
                 clas=e.classification))
+
 
 def assessFitness(individual):
     def check_condition(rule, datapoint):
@@ -153,54 +155,37 @@ def selection(population):
         child_a = None
         child_b = None
         if random.random() <= const.CROSSOVER_PROB:
-            while True:
-                cross_point = random.randint(1, const.NUM_GENE - 1)
-                child_a = Individual(
-                    cand_a.gene[:cross_point] + cand_b.gene[cross_point:])
-                child_b = Individual(
-                    cand_b.gene[:cross_point] + cand_a.gene[cross_point:])
-                if vali_wc(child_a.gene) and vali_wc(child_b.gene):
-                    break
+            cross_point = random.randint(1, const.NUM_GENE - 1)
+            child_a = Individual(
+                cand_a.gene[:cross_point] + cand_b.gene[cross_point:])
+            child_b = Individual(
+                cand_b.gene[:cross_point] + cand_a.gene[cross_point:])
             return (True, child_a, child_b)
         else:
             return (False, cand_a, cand_b)
 
-    def vali_wc(ele):
-        count = 1
-        for bit in ele:
-            if count == 7:
-                count = 1
-                continue
-            if bit != 2:
-                return True
-            count += 1
-        return False
-
     def mutate_offspring(child):
         first = False
-        while True:
-            new_gene = []
-            count = 1
-            b_range = 2
-            for bit in child.gene:
-                if first:
-                    first = False
-                if count == 7:
-                    # Only allow action bit to be 1 and 0
-                    count = 1
-                    b_range = 1
-                    first = True
-                # Mutate bit
-                if random.random() <= const.MUTATION_PROB:
-                    new_gene.append(random.randint(0, b_range))
-                else:
-                    new_gene.append(bit)
-                if count == 1:
-                    b_range = 2
-                if not first:
-                    count = count + 1
-            if vali_wc(new_gene):
-                break
+        new_gene = []
+        count = 1
+        b_range = 2
+        for bit in child.gene:
+            if first:
+                first = False
+            if count == 7:
+                # Only allow action bit to be 1 and 0
+                count = 1
+                b_range = 1
+                first = True
+            # Mutate bit
+            if random.random() <= const.MUTATION_PROB:
+                new_gene.append(random.randint(0, b_range))
+            else:
+                new_gene.append(bit)
+            if count == 1:
+                b_range = 2
+            if not first:
+                count = count + 1
         child.gene = new_gene
         return child
 

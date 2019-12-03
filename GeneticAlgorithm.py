@@ -253,8 +253,6 @@ def selection(population):
     for i in range(len(population)):
         rank_indexes.append(bisect(rank_select, random.random() * max_rel_fit))
     [(offspring.append(population[index])) for index in rank_indexes]
-    offspring.sort(key=lambda x: x.fitness, reverse=True)
-    # print[e.fitness for e in offspring]
     shuffle_pop(offspring)
     # Crossover
     for i in range(0, len(offspring), 2):

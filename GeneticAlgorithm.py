@@ -20,7 +20,7 @@ random.seed(a=None)
 mean_fit = []
 best_fit = []
 counter = 0
-
+test_fitness = None
 
 class Individual:
     def __init__(self, gene):
@@ -74,6 +74,10 @@ def main():
     print "Fittest: {f}".format(
         f=fittest_individual.fitness)
 
+    # Run against test set
+    global test_fitness
+    test_fitness = compare_against_set(fittest_individual, DataExtract.DataHelper.test_data)
+    print("Produced a fitness of {f} on test set".format(f=str(test_fitness)))
     write_csv()
     plot()
 
@@ -86,11 +90,13 @@ def plot():
 
 
 def write_csv():
+    global test_fitness
     with open("fit.csv", 'w') as f:
         f.write("Epoch,Best Candidate,Mean Fitness,\n")
         for i in range(counter + 1):
             f.write("{e},{bc},{mf},\n".format(
                 e=i, bc=best_fit[i], mf=mean_fit[i]))
+        f.write("\ntest fitness\n{f}".format(f=str(test_fitness)))
     with open("fittest_cand.csv", 'w') as f:
         f.write("Fitness,\n")
         f.write(str(fittest_individual.fitness))
@@ -102,22 +108,10 @@ def write_csv():
                 clas=e.classification))
 
 
-def assessFitness(individual):
-    # Create Rules
-    k = 0
-    fitness = 0
-    individual.ruleList = []
-    for i in range(const.NUM_RULES):
-        tempRule = DataExtract.Data()
-        for j in range(const.COND_LENGTH):
-            tempRule.condition.append(individual.gene[k])
-            k = k + 1
-        tempRule.classification = individual.gene[k]
-        k = k + 1
-        individual.ruleList.append(tempRule)
-
+def compare_against_set(individual, dataset):
     # Assess the fitness
-    for dp_rule in DataExtract.DataHelper.train_data:
+    fitness = 0
+    for dp_rule in dataset:
         # Get one DP
         for trial_rule in individual.ruleList:
             # Run Trial DP down my gen rules and try ot match
@@ -141,7 +135,22 @@ def assessFitness(individual):
             if match:
                 # We've matched with a created rule so stop looking for more rules
                 break
-    individual.fitness = fitness
+    return fitness
+
+def assessFitness(individual):
+    # Create Rules
+    k = 0
+    individual.ruleList = []
+    for i in range(const.NUM_RULES):
+        tempRule = DataExtract.Data()
+        for j in range(const.COND_LENGTH):
+            tempRule.condition.append(individual.gene[k])
+            k = k + 1
+        tempRule.classification = individual.gene[k]
+        k = k + 1
+        individual.ruleList.append(tempRule)
+
+    individual.fitness = compare_against_set(individual, DataExtract.DataHelper.train_data)
 
 
 def inspectPop(p, init=False):
@@ -183,18 +192,19 @@ def selection(population):
         get_six_prec = lambda p: float('%.{p}f'.format(p=const.FLOAT_PRECISION) % p)
         action = False
         new_gene = []
-        count = 1
+        count = 0
         for bit in child.gene:
+            count += 1
             if action:
                 action = False
             if count == const.COND_LENGTH + 1:
                 # Only allow action bit to be 1 and 0
-                count = 1
+                count = 0
                 action = True
             # Mutate bit
             if random.random() <= const.MUTATION_PROB:
                 if action:
-                    new_gene.append(random.randint(0, const.MAX_ACTION))
+                    new_gene.append(1 - bit)
                 else:
                     mut_val = random.uniform(0, const.MUTATION_AMOUNT)
                     if random.random() > 0.5:

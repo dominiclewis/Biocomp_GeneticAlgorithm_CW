@@ -19,6 +19,8 @@ random.seed(a=None)
 
 mean_fit = []
 best_fit = []
+counter = 0
+
 
 class Individual:
     def __init__(self, gene):
@@ -26,29 +28,33 @@ class Individual:
         self.fitness = 0
         self.ruleList = []
 
+
 def main():
+    global counter
+    cout = 0
     # Create Population
     popPool = []
-    max_num = 2
-    first = False
     for _ in range(const.NUM_POP):
         count = 1
         gene = []
         for _ in range(const.NUM_GENE):
-            if first:
-                first = False
-            if count == 7:
-                max_num = 1
+            action = False
+            if count == const.COND_LENGTH + 1:
+                # Generating action bit (classification) then reset count for new rule
                 count = 1
-                first = True
-            gene.append(random.randint(0, max_num))
-            if count == 1:
-                max_num = 2
-            if not first:
+                action = True
+            if action:
+                gene.append(random.randint(0, const.MAX_ACTION))
+            else:
+                # condition
+                gene.append(float('%.{p}f'.format(p=const.FLOAT_PRECISION) % random.random()))
+                cout += 1
+                if count == 2:
+                    cout = 0
+            if not action:
                 count += 1
         popPool.append(Individual(gene))
-    global counter
-    counter = 0
+
     # Selection
     for i in range(const.NUM_EPOCH):
         counter += 1
@@ -97,16 +103,6 @@ def write_csv():
 
 
 def assessFitness(individual):
-    def check_condition(rule, datapoint):
-        match = True
-        for i, dp in enumerate(datapoint):
-            if rule[i] == dp or rule[i] == 2:
-                pass
-            else:
-                match = False
-                break
-        return match
-
     # Create Rules
     k = 0
     fitness = 0
@@ -119,12 +115,31 @@ def assessFitness(individual):
         tempRule.classification = individual.gene[k]
         k = k + 1
         individual.ruleList.append(tempRule)
+
     # Assess the fitness
-    for dp in DataExtract.DataHelper.data_list:
-        for rule in individual.ruleList:
-            if check_condition(rule.condition, dp.condition):
-                if rule.classification == dp.classification:
-                    fitness = fitness + 1
+    for dp_rule in DataExtract.DataHelper.train_data:
+        # Get one DP
+        for trial_rule in individual.ruleList:
+            # Run Trial DP down my gen rules and try ot match
+            dp_matched = 0
+            match = False
+            lookup = None
+            for i, dp_gene in enumerate(dp_rule.condition):
+                if i == 0:
+                    lookup = i
+                else:
+                    lookup = i * 2
+                if trial_rule.condition[lookup] < dp_gene < trial_rule.condition[lookup + 1]:
+                    dp_matched += 1
+                else:
+                    break
+                if dp_matched == const.TRAIN_COND_LENGTH:
+                    # We've matched every gene in a DP with a generated rule
+                    if dp_rule.classification == trial_rule.classification:
+                        fitness += 1
+                    match = True
+            if match:
+                # We've matched with a created rule so stop looking for more rules
                 break
     individual.fitness = fitness
 
@@ -165,27 +180,37 @@ def selection(population):
             return (False, cand_a, cand_b)
 
     def mutate_offspring(child):
-        first = False
+        get_six_prec = lambda p: float('%.{p}f'.format(p=const.FLOAT_PRECISION) % p)
+        action = False
         new_gene = []
         count = 1
-        b_range = 2
         for bit in child.gene:
-            if first:
-                first = False
-            if count == 7:
+            if action:
+                action = False
+            if count == const.COND_LENGTH + 1:
                 # Only allow action bit to be 1 and 0
                 count = 1
-                b_range = 1
-                first = True
+                action = True
             # Mutate bit
             if random.random() <= const.MUTATION_PROB:
-                new_gene.append(random.randint(0, b_range))
+                if action:
+                    new_gene.append(random.randint(0, const.MAX_ACTION))
+                else:
+                    mut_val = random.uniform(0, const.MUTATION_AMOUNT)
+                    if random.random() > 0.5:
+                        # Try to add if possible
+                        if get_six_prec(bit + mut_val) < 1:
+                            new_gene.append(get_six_prec(bit + mut_val))
+                        else:
+                            new_gene.append(get_six_prec(bit - mut_val))
+                    else:
+                        # try to minus if possible
+                        if get_six_prec(bit - mut_val > 0):
+                            new_gene.append(get_six_prec(bit - mut_val))
+                        else:
+                            new_gene.append(get_six_prec(bit + mut_val))
             else:
                 new_gene.append(bit)
-            if count == 1:
-                b_range = 2
-            if not first:
-                count = count + 1
         child.gene = new_gene
         return child
 
@@ -235,5 +260,5 @@ def selection(population):
 if __name__ == "__main__":
     DataExtract.DataHelper.load_file_data(
         "/Users/dominiclewis/Repos/BioComp/Biocomp_GeneticAlgorithm_CW/train/"
-        "data2.txt")
+        "data3.txt")
     main()
